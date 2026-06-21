@@ -1,0 +1,98 @@
+# Combined .gitignore for Frontend (Angular/Node) and Backend (.NET/Visual Studio)
+
+# ==============================================================================
+# OS & System Files
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==============================================================================
+# IDEs and Common Editors
+# ==============================================================================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+*.user
+*.userosscache
+*.suo
+.history/
+.project
+.classpath
+.c9/
+.settings/
+*.launch
+*.sublime-workspace
+
+# ==============================================================================
+# Frontend (Angular, Node, npm)
+# ==============================================================================
+**/node_modules/
+**/dist/
+**/tmp/
+**/out-tsc/
+**/bazel-out/
+**/.angular/
+.sass-cache/
+connect.lock
+coverage/
+libpeerconnection.log
+testem.log
+typings/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+eslint-cache
+.eslintcache
+
+# ==============================================================================
+# Backend (.NET / Visual Studio)
+# ==============================================================================
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files (Mono)
+*.userprefs
+
+# Mono auto-generated files
+mono_crash.*
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Re]leases/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Log]s/
+[Tt]est[Rr]esults/
+
+# Omit Temp and Generated files
+# (e.g. .vs folder contains Visual Studio configuration/temp files)
+.vs/
+[Cc]hanges/
+**/uploads/
+
+# Rider / IntelliJ JetBrains
+.idea/
+*.sln.iml
