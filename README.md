@@ -106,6 +106,41 @@ The frontend is built with **Angular CLI** and communicates with the backend API
 
 ---
 
+## 🐳 Docker Compose Quick Start (Easiest Method)
+
+To run the entire application (SQL Server, Backend API, and Frontend Angular client) instantly without manual database setup or local .NET/Node installations:
+
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+### Steps to Run
+
+1. **Clone/open this repository directory in your terminal.**
+2. **Start the containers:**
+   ```bash
+   docker compose up --build -d
+   ```
+3. **Verify running containers:**
+   - **Frontend App:** Navigate to `http://localhost:4200`
+   - **Backend Swagger:** Navigate to `http://localhost:5097/swagger`
+   - **SQL Server DB:** Runs inside the docker network and is exposed to the host on port `1433`.
+
+### Useful Commands
+- **Stop application:**
+  ```bash
+  docker compose down
+  ```
+- **Stop application and delete database volumes (Fresh Start):**
+  ```bash
+  docker compose down -v
+  ```
+- **View Backend logs:**
+  ```bash
+  docker compose logs backend
+  ```
+
+---
+
 ## 🔑 Key Features & Technologies
 
 ### Backend Features

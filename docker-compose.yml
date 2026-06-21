@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: inventory_db
+    restart: always
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourSecurePassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+
+  backend:
+    image: inventory_backend:latest
+    container_name: inventory_backend
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=InventoryManagementDb;User Id=sa;Password=YourSecurePassword123!;MultipleActiveResultSets=true;TrustServerCertificate=True;
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5097:5097"
+    depends_on:
+      - db
+
+  frontend:
+    image: inventory_frontend:latest
+    container_name: inventory_frontend
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  mssql_data:
