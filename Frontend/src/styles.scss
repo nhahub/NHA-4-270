@@ -1,0 +1,599 @@
+@import "primeicons/primeicons.css";
+@import "primeflex/primeflex.css";
+
+// Google Fonts - loaded via index.html
+
+// Colors and Styling Tokens
+:root {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  // Theme Light Colors (Sleek red highlights on crisp light background)
+  --primary-color: #dc2626;
+  --secondary-color: #7f1d1d;
+  --success-color: #16a34a;
+  --warning-color: #d97706;
+  --danger-color: #dc2626;
+  --bg-color: #fff8f8;
+  --surface-card: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(220, 38, 38, 0.15);
+  --text-color: #1a0505;
+  --text-secondary: #7f1d1d;
+  --sidebar-bg: #1a0202;
+  --sidebar-text: #fee2e2;
+  --sidebar-active: #dc2626;
+  
+  // Premium Shadows
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(220, 38, 38, 0.08), 0 4px 6px -4px rgba(220, 38, 38, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(127, 29, 29, 0.05);
+}
+
+body.dark-theme {
+  // Theme Dark Colors (Deep black-red backgrounds with glowing dark red/crimson accents)
+  --bg-color: #070202;
+  --surface-card: rgba(22, 10, 10, 0.7);
+  --border-color: rgba(239, 68, 68, 0.2);
+  --text-color: #fecaca;
+  --text-secondary: #fca5a5;
+  --sidebar-bg: #040101;
+  --sidebar-text: #fecaca;
+  --sidebar-active: #ef4444;
+  --primary-color: #ef4444;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6);
+  --glass-shadow: 0 8px 32px 0 rgba(127, 29, 29, 0.15);
+}
+
+// Global Resets
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Custom Scrollbar Styling
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  opacity: 0.3;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+// Glassmorphism Card Style
+.glass-card {
+  background: var(--surface-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  overflow: hidden;
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg), 0 12px 24px -10px rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+// Micro-animations & Transitions
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// PrimeNG Custom Overrides (Styled Mode matching modern premium feel)
+.p-datatable {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color) !important;
+  background: transparent !important;
+  
+  .p-datatable-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 1.25rem !important;
+  }
+  
+  .p-datatable-thead > tr > th {
+    background: var(--bg-color) !important;
+    color: var(--text-color) !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 1rem 1.25rem !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+  
+  .p-datatable-tbody > tr {
+    background: var(--surface-card) !important;
+    backdrop-filter: blur(8px) !important;
+    color: var(--text-color) !important;
+    transition: background-color 0.2s ease !important;
+    
+    &:hover {
+      background: rgba(239, 68, 68, 0.04) !important;
+      color: var(--text-color) !important;
+    }
+    
+    > td {
+      padding: 1rem 1.25rem !important;
+      border-bottom: 1px solid var(--border-color) !important;
+      font-size: 0.875rem !important;
+    }
+  }
+
+  .p-paginator {
+    background: transparent !important;
+    border-top: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0.75rem !important;
+    
+    .p-paginator-page, .p-paginator-next, .p-paginator-last, .p-paginator-first, .p-paginator-prev {
+      color: var(--text-secondary) !important;
+      min-width: 2.25rem !important;
+      height: 2.25rem !important;
+      border-radius: 50% !important;
+      transition: background-color 0.2s, color 0.2s !important;
+      
+      &:hover {
+        background: rgba(37, 99, 235, 0.1) !important;
+        color: var(--primary-color) !important;
+      }
+      
+      &.p-highlight {
+        background: var(--primary-color) !important;
+        color: white !important;
+      }
+    }
+  }
+}
+
+// Input and Button Style Enhancements
+.p-inputtext, .p-password-input {
+  border-radius: 8px !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  padding: 0.625rem 0.875rem !important;
+  font-size: 0.875rem !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+  
+  &:focus {
+    outline: none !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+  }
+}
+
+.p-button {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  padding: 0.625rem 1.25rem !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  
+  &:active {
+    transform: scale(0.97) !important;
+  }
+  
+  &.p-button-primary {
+    background: var(--primary-color) !important;
+    border: 1px solid var(--primary-color) !important;
+    
+    &:hover {
+      background: #1d4ed8 !important;
+      border-color: #1d4ed8 !important;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+    }
+  }
+}
+
+// Badge States
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  
+  &.badge-success {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16a34a;
+  }
+  
+  &.badge-warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+  }
+  
+  &.badge-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+  }
+
+  &.badge-info {
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+  }
+}
+
+// Chart ApexChart Styling Overrides
+.apexcharts-canvas {
+  font-family: var(--font-family) !important;
+  
+  .apexcharts-tooltip {
+    background: var(--surface-card) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-color) !important;
+    box-shadow: var(--shadow-md) !important;
+    border-radius: 8px !important;
+  }
+  
+  .apexcharts-legend-text {
+    color: var(--text-color) !important;
+  }
+}
+
+/* --- PrimeNG Overrides & Premium Glassmorphic Overlay Styling --- */
+
+/* 1. Menu Component (Profile Dropdown) */
+.p-menu {
+  background: var(--surface-card) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--glass-shadow), 0 10px 30px -10px rgba(0, 0, 0, 0.15) !important;
+  padding: 0.5rem !important;
+  min-width: 220px !important;
+  font-family: var(--font-family) !important;
+  transition: all 0.3s ease !important;
+  
+  .p-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .p-menu-submenu-label {
+    font-size: 0.725rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    color: var(--text-secondary) !important;
+    padding: 0.65rem 0.75rem 0.3rem 0.75rem !important;
+    margin-top: 0.35rem !important;
+    background: transparent !important;
+  }
+  
+  .p-menu-item-content {
+    background: transparent !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+    
+    &:hover {
+      background: rgba(239, 68, 68, 0.08) !important;
+      
+      .p-menu-item-link {
+        color: var(--primary-color) !important;
+        
+        .p-menu-item-icon {
+          color: var(--primary-color) !important;
+        }
+      }
+    }
+  }
+
+  .p-menu-item-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.55rem 0.75rem !important;
+    color: var(--text-color) !important;
+    text-decoration: none !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    transition: color 0.15s ease !important;
+    
+    .p-menu-item-icon {
+      font-size: 0.95rem !important;
+      color: var(--text-secondary) !important;
+      transition: color 0.15s ease !important;
+    }
+  }
+  
+  .p-menu-separator {
+    border-top: 1px solid var(--border-color) !important;
+    margin: 0.35rem 0 !important;
+  }
+}
+
+/* 2. Popover Component (Notifications overlay) */
+.p-popover {
+  background: var(--surface-card) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--glass-shadow), 0 10px 30px -10px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden;
+  
+  .p-popover-content {
+    padding: 0 !important;
+  }
+  
+  // Custom arrow overrides
+  &::before, &::after {
+    border-bottom-color: var(--border-color) !important;
+  }
+}
+
+/* 3. Dropdown Component (Select) */
+.p-select {
+  border-radius: 8px !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+  
+  &:not(.p-disabled).p-focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+  }
+  
+  .p-select-label {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.85rem !important;
+    color: var(--text-color) !important;
+    font-weight: 500 !important;
+    
+    &.p-placeholder {
+      color: var(--text-secondary) !important;
+    }
+  }
+  
+  .p-select-trigger {
+    color: var(--text-secondary) !important;
+    width: 2.25rem !important;
+  }
+}
+
+.p-select-overlay {
+  background: var(--surface-card) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--glass-shadow), 0 10px 30px -10px rgba(0, 0, 0, 0.15) !important;
+  padding: 0.35rem !important;
+  
+  .p-select-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  
+  .p-select-option {
+    border-radius: 6px !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.825rem !important;
+    color: var(--text-color) !important;
+    background: transparent !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease !important;
+    
+    &:hover {
+      background: rgba(239, 68, 68, 0.08) !important;
+      color: var(--primary-color) !important;
+    }
+    
+    &.p-select-option-selected {
+      background: var(--primary-color) !important;
+      color: white !important;
+    }
+  }
+}
+
+/* 4. Toggle Switch Component */
+.p-toggleswitch {
+  width: 40px !important;
+  height: 22px !important;
+  
+  .p-toggleswitch-slider {
+    background: #cbd5e1 !important;
+    border-radius: 30px !important;
+    border: none !important;
+    transition: background-color 0.2s, box-shadow 0.2s !important;
+    
+    &::before {
+      width: 16px !important;
+      height: 16px !important;
+      left: 3px !important;
+      bottom: 3px !important;
+      background: white !important;
+      border-radius: 50% !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.2s !important;
+    }
+  }
+  
+  &.p-toggleswitch-checked {
+    .p-toggleswitch-slider {
+      background: var(--primary-color) !important;
+      
+      &::before {
+        transform: translateX(18px) !important;
+      }
+    }
+  }
+  
+  &:not(.p-disabled):hover {
+    .p-toggleswitch-slider {
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+    }
+  }
+}
+
+body.dark-theme {
+  .p-toggleswitch {
+    .p-toggleswitch-slider {
+      background: #334155 !important;
+    }
+  }
+}
+
+/* 5. Dialog Component (Modals / popups) */
+.p-dialog {
+  border-radius: 16px !important;
+  background: var(--surface-card) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--glass-shadow), 0 20px 40px -15px rgba(0, 0, 0, 0.25) !important;
+  overflow: hidden;
+  
+  .p-dialog-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 1.25rem 1.5rem !important;
+    color: var(--text-color) !important;
+    
+    .p-dialog-title {
+      font-weight: 800 !important;
+      font-size: 1.15rem !important;
+      letter-spacing: -0.02em !important;
+    }
+    
+    .p-dialog-header-actions {
+      .p-dialog-header-action {
+        color: var(--text-secondary) !important;
+        border-radius: 50% !important;
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+        transition: all 0.2s ease !important;
+        
+        &:hover {
+          background: rgba(239, 68, 68, 0.08) !important;
+          color: var(--primary-color) !important;
+        }
+      }
+    }
+  }
+  
+  .p-dialog-content {
+    background: transparent !important;
+    padding: 1.5rem !important;
+    color: var(--text-color) !important;
+  }
+  
+  .p-dialog-footer {
+    background: transparent !important;
+    border-top: 1px solid var(--border-color) !important;
+    padding: 1rem 1.5rem !important;
+  }
+}
+
+/* --- Reports Print Styling --- */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  // Hide UI decoration elements
+  .app-sidebar, .app-header, .page-header, .flex.gap-2, button, p-selectButton, app-breadcrumb, p-toast, .report-selection-card, .col-12.lg\\:col-4, .pb-3.border-bottom-1 {
+    display: none !important;
+  }
+
+  .col-12.lg\\:col-8 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding: 0 !important;
+  }
+
+  .glass-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+  }
+
+  .print-header {
+    display: block !important;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 1rem;
+    color: black !important;
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: bold;
+      margin: 0;
+    }
+    p {
+      margin: 0.25rem 0 0;
+      font-size: 0.85rem;
+      color: #334155;
+    }
+  }
+
+  .p-datatable {
+    border: 1px solid #000 !important;
+    th {
+      background: #f1f5f9 !important;
+      color: #000 !important;
+      border-bottom: 1px solid #000 !important;
+    }
+    td {
+      color: #000 !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+  }
+}
+
+
