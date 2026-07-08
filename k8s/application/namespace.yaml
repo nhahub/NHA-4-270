@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    environment: production
+    tier: application
+  annotations:
+    description: "Production namespace for the Multi-Tenant Inventory SaaS Platform"
