@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: production
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      nodeSelector:
+        role: production
+      containers:
+        - name: backend
+          image: mohamedelshahaby/inventory-backend:latest
+          ports:
+            - containerPort: 5097
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:5097"
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: db_connection_string
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: jwt_key
+            - name: Jwt__Issuer
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: jwt_issuer
+            - name: Jwt__Audience
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: jwt_audience
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5097
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5097
+            initialDelaySeconds: 10
+            periodSeconds: 5

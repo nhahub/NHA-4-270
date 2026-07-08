@@ -28,12 +28,14 @@ Every time you destroy and recreate, AWS assigns **new unique identifiers** to r
 
 1. [Cost Summary — What you're paying for](#1-cost-summary--what-youre-paying-for)
 2. [Destroy Everything](#2-destroy-everything)
-3. [Recreate Everything (Current: Phase 3)](#3-recreate-everything-current-phase-3)
+3. [Recreate Everything (Current: Phase 5)](#3-recreate-everything-current-phase-5)
    - [Prerequisites](#31-prerequisites)
    - [Phase 1: Terraform — VPC, EKS, RDS](#32-phase-1-terraform--vpc-eks-rds)
    - [Phase 2: Jenkins on Kubernetes](#33-phase-2-jenkins-on-kubernetes)
    - [Phase 3: Docker images on DockerHub](#34-phase-3-docker-images-on-dockerhub)
-   - [Final verification](#35-final-verification)
+   - [Phase 4: Jenkins Pipeline](#35-phase-4-jenkins-pipeline)
+   - [Phase 5: Application K8s Manifests](#36-phase-5-application-k8s-manifests)
+   - [Final verification](#37-final-verification)
 4. [Estimated Time & Cost Tables](#4-estimated-time--cost-tables)
 5. [Phase-by-phase checklist (to update as we go)](#5-phase-by-phase-checklist-to-update-as-we-go)
 
@@ -51,10 +53,11 @@ These AWS resources are **active 24/7** and incur charges even when nobody is us
 | **RDS SQL Server Express** | db.t3.small × 20GB × $0.026/hr | **~$19** | ❌ Required for the app |
 | **2x EC2 (EKS nodes)** | t3.small × $0.0208/hr | **~$30** | ❌ Required for workloads |
 | **Application Load Balancer** | Jenkins ELB × $0.025/hr + LCU | **~$18** | ❌ Required for Jenkins access |
-| **EBS volumes** | 2 × 20GB gp2 + Jenkins PV | **~$6** | ❌ Required for storage |
-| **TOTAL** | | **~$183/month** | |
+| **Application Load Balancer** | Frontend ELB × $0.025/hr + LCU | **~$18** | ❌ Required for frontend access |
+| **EBS volumes** | 2 × 20GB gp2 + Jenkins PV + app pods | **~$10** | ❌ Required for storage |
+| **TOTAL** | | **~$210/month** | |
 
-> **💡 Tip:** If you're only working 1-2 days per week, destroying and recreating saves ~$150/month.
+> **💡 Tip:** If you're only working 1-2 days per week, destroying and recreating saves ~$160/month.
 
 ---
 
@@ -68,8 +71,8 @@ Run these steps **in order**. Some resources depend on others, so the order matt
 # 1. Delete Jenkins (Phase 2)
 kubectl delete -f k8s/jenkins/
 
-# 2. Delete application deployments (Phase 5 — uncomment when Phase 5 is done)
-# kubectl delete -f k8s/application/
+# 2. Delete application deployments (Phase 5)
+kubectl delete -f k8s/application/
 
 # 3. Verify nothing is left
 kubectl get all -n jenkins        # Should show "No resources found"
@@ -78,7 +81,6 @@ kubectl get all --all-namespaces  # Should show only kube-system pods
 
 **To add in future phases:**
 - **Phase 4:** Pipeline jobs and credentials exist only inside Jenkins. To clean up: delete the pipeline job and credentials via the Jenkins web UI (Manage Jenkins → Credentials → Delete; Dashboard → Delete Pipeline job).
-- **Phase 5:** Uncomment line 2 above and add `kubectl delete -f k8s/application/`
 
 > **Why first?** Kubernetes resources (pods, services, PVCs) hold references to AWS resources like Load Balancers and EBS volumes. Terraform can't destroy those AWS resources while K8s is using them.
 
@@ -137,7 +139,7 @@ terraform destroy -auto-approve
 
 ---
 
-## 3. Recreate Everything (Current: Phase 4)
+## 3. Recreate Everything (Current: Phase 5)
 
 ### 3.1 Prerequisites
 
@@ -318,14 +320,89 @@ Both commands should succeed without errors.
 
 **Estimated time: 5-10 minutes**
 
-#### Step 1: Login to DockerHub
+> **✅ COMPLETELY OPTIONAL — Jenkins pipeline handles everything**
+> 
+> The Jenkins pipeline (Phase 4) automatically:
+> 1. Pulls source code from GitHub
+> 2. Builds both frontend and backend Docker images using the Dockerfiles from Phase 3
+> 3. Pushes images to DockerHub with unique tags
+> 4. Updates Kubernetes deployments with the new image tags
+> 
+> **You DON'T need to manually build or push Docker images during recreate.** Simply focus on setting up Jenkins (Phase 4) to run automatically.
 
+#### When to run Phase 3 manually (development only)
+
+Use Phase 3 steps ONLY for local testing/debugging:
+- Testing Dockerfile changes before pushing to GitHub
+- Debugging a broken Docker build
+- Quickly verifying Docker images locally
+
+Otherwise, **skip all of Phase 3** — the Jenkins pipeline does everything.
+
+# Understanding the two optional variables in Jenkinsfile
+
+The Jenkinsfile has two environment variables that configure the pipeline behavior:
+
+| Variable | Value | Purpose |
+|---|---|---|
+| `DOCKER_HOST` | `tcp://localhost:2375` | Tells the Docker CLI inside Jenkins where the Docker daemon is running (the dind sidecar container) |
+| `IMAGE_TAG` | `${BUILD_NUMBER}` | Used as the Docker image tag — automatically set to the Jenkins build number (1, 2, 3,...) |
+
+**Why `DOCKER_HOST` ?**
+- Jenkins runs **inside a pod** in your EKS cluster
+- The actual Docker daemon (`dind`) runs in a **sidecar container** in the same pod
+- Without `DOCKER_HOST`, the `docker` CLI would try to connect to the host daemon, which doesn't exist in the pod
+
+**Why `IMAGE_TAG` uses `${BUILD_NUMBER}` ?**
+- Every time you commit code or click "Build Now", Jenkins creates a new build with a unique number (1, 2, 3...)
+- Using the build number as the image tag ensures you can **rollback** to a previous version
+- Example: If build #42 produced the images, they get tagged as:
+  - `mohamedelshahaby/inventory-backend:42`
+  - `mohamedelshahaby/inventory-frontend:42`
+  - PLUS `latest` tag
+
+**The complete pipeline flow (no manual Docker steps needed):**
+
+1. **Source**: Developer commits code to GitHub
+2. **Trigger**: GitHub webhook or "Build Now" in Jenkins
+3. **Checkout**: Jenkins clones the repo (gets Dockerfiles, app code)
+4. **Build**: Jenkins creates containers using `docker.image().inside()` and builds both images using the Dockerfiles
+5. **Push**: Jenkins pushes both images to DockerHub (`:1`, `:2`, `...:latest`)
+6. **Deploy**: Jenkins updates Kubernetes deployments with the new image tags (using `sed` to inject the tags)
+
+**Result**: After Phase 4 (Jenkins) is set up and runs once, you'll have DockerHub image repositories with all images:
+- `mohamedelshahaby/inventory-backend:latest` (most recent)
+- `mohamedelshahaby/inventory-backend:1` (first build)
+- `mohamedelshahaby/inventory-backend:2` (second build)
+- ...and similarly for `inventory-frontend`
+
+**Phase 3 manual steps are only needed if**: you want to bypass the Jenkins pipeline for some reason. Otherwise, let Jenkins do all the work automatically.
+
+---
+---
+---
+
+<br>
+
+### What you actually need to focus on during recreate:
+
+1. **Infrastructure** ✅ (Phase 1) — Terraform creates EKS, nodes, and labels them
+2. **Jenkins setup** ✅ (Phase 2) — Deploy Jenkins with nodeSelector `role=tools`
+3. **Jenkins pipeline** ✅ (Phase 4) — Install plugins, add credentials, and configure the Jenkinsfile
+4. **Verify** — Watch the pipeline run and generate DockerHub images automatically
+
+**No manual Docker commands needed at all.** The pipeline handles everything.
+
+
+---
+
+#### Step 1: (OPTIONAL) Login to DockerHub
 ```powershell
 docker login -u mohamedelshahaby
 # Use your Access Token, not your password
 ```
 
-#### Step 2: Build the Docker images
+#### Step 2: (OPTIONAL) Build the Docker images
 
 ```powershell
 # Build Backend
@@ -335,7 +412,9 @@ docker build -t inventory_backend:latest ./Backend
 docker build -t inventory_frontend:latest ./Frontend
 ```
 
-#### Step 3: Tag and push to DockerHub
+**Skip this step** if images already exist on DockerHub (the normal case during recreate).
+
+#### Step 3: (OPTIONAL) Tag and push to DockerHub
 
 ```powershell
 # Tag
@@ -347,11 +426,24 @@ docker push mohamedelshahaby/inventory-frontend:latest
 docker push mohamedelshahaby/inventory-backend:latest
 ```
 
-#### Step 4: Verify on DockerHub
+These steps are only needed for local testing/debugging. During normal recreate, skip to Phase 4.
 
-Open https://hub.docker.com/u/mohamedelshahaby — both repositories should exist.
+#### Step 4: (OPTIONAL) Verify on DockerHub
 
-### 3.5 Phase 4: Jenkins Pipeline — Install plugins, add credentials, create job
+> **If you skipped steps 1-3:** Verify that the images exist on DockerHub:
+> 
+> ```powershell
+> # Only if you pushed in steps 2-3, otherwise skip
+> Write-Output "Image check:")
+> Write-Output "  https://hub.docker.com/u/mohamedelshahaby")
+> ```
+
+> **If you used Jenkins pipeline:** Don't do this step — Images have already been pushed by Jenkins.
+
+---
+---
+
+### 3.5 Phase 4: Jenkins Pipeline
 
 **Estimated time: 15-20 minutes**
 
@@ -508,15 +600,137 @@ Write-Output "Open http://$JENKINS_URL`:8080/job/Inventory-App%20Pipeline/ and c
 Write-Output "Expected: All stages green (Deploy stage skips until Phase 5)"
 ```
 
-### ⬜ Phase 5 (Coming soon — K8s Application Deployments)
+### 3.6 Phase 5: Application Kubernetes Manifests
 
-*When Phase 5 is complete, the recreate steps here will include:*
-1. Creating Kubernetes Secrets for RDS connection string
-2. Deploying Frontend + Backend pods on the `role=production` node
-3. Creating a LoadBalancer for the Frontend
-4. Verifying the full application works end-to-end
+**Estimated time: 2-5 minutes**
 
-*Check back after Phase 5 is done.*
+Phase 5 creates the Kubernetes resources to run the actual application (Frontend + Backend) on the EKS cluster. All YAML files are in `k8s/application/`.
+
+#### Step 1: Update RDS connection string in secrets.yaml
+
+Before applying, update the RDS endpoint in `k8s/application/secrets.yaml` with the actual RDS address from Terraform:
+
+```powershell
+# Get the RDS endpoint
+terraform output rds_endpoint
+
+# Expected output example: inventory-mgmt-sqlserver.c2fc20q44515.us-east-1.rds.amazonaws.com
+```
+
+Open `k8s/application/secrets.yaml` and replace the `Server=` value in `db_connection_string` with the actual endpoint.
+
+#### Step 2: Apply all application manifests
+
+```powershell
+kubectl apply -f k8s/application/
+```
+
+This creates:
+- `production` namespace
+- `app-secrets` Secret (RDS connection string, JWT key)
+- `backend` Deployment (2 replicas on `role=production` node)
+- `backend-service` Service (ClusterIP — internal only)
+- `frontend` Deployment (2 replicas on `role=production` node)
+- `frontend-service` Service (LoadBalancer — public)
+
+#### Step 3: Wait for pods to be ready
+
+```powershell
+kubectl get pods -n production -w
+```
+
+Expected transition: `Pending` → `ContainerCreating` → `Running`
+
+Total time: ~1-2 minutes (images are pulled from DockerHub).
+
+#### Step 4: Verify the pods are on the right node
+
+```powershell
+kubectl get pods -n production -o wide
+# Both pods should show NODE with label "role=production"
+```
+
+#### Step 5: Get the Frontend LoadBalancer URL
+
+```powershell
+kubectl get svc -n production frontend-service
+```
+
+Look for the `EXTERNAL-IP` column — it will show a URL like:
+```
+a5b2c3d4e5f6-123456789.us-east-1.elb.amazonaws.com
+```
+
+Open `http://<EXTERNAL-IP>` in your browser — you should see the Angular application.
+
+#### Step 6: Verify the Backend API is reachable
+
+```powershell
+# From within the cluster (via a temporary pod)
+kubectl run test-pod --image=curlimages/curl:latest --rm -it --restart=Never -- curl -s http://backend-service.production.svc.cluster.local:5097/health
+```
+
+Expected output: `Healthy` or similar response from the backend.
+
+#### Troubleshooting
+
+| Issue | Likely cause | Fix |
+|---|---|---|
+| Pod stuck in `Pending` | Node doesn't have `role=production` label | Run `kubectl label node <node-name> role=production` |
+| Backend pods crash-looping | Wrong RDS endpoint or password | Check and update `secrets.yaml`, then re-apply |
+| Frontend shows blank page or 502 | Backend service not reachable | Verify backend pods are running: `kubectl get pods -n production` |
+| ImagePullBackOff | DockerHub image doesn't exist | Run the Jenkins pipeline first to build and push images |
+
+#### What the Jenkins pipeline does with Phase 5
+
+When you run the Jenkins pipeline now, the `Deploy to Kubernetes` stage will:
+
+1. **Detect** that `k8s/application/` exists (previously it skipped)
+2. **Update image tags** using `sed` — replaces `:latest` with `:BUILD_NUMBER`
+3. **Run `kubectl apply`** with the updated YAML files
+4. **Rolling update** — Kubernetes gradually replaces pods with the new image version
+
+### 3.7 Final verification
+
+Run this checklist to confirm everything is working:
+
+```powershell
+# 1. Cluster and nodes
+Write-Output "=== CLUSTER ==="
+kubectl cluster-info
+kubectl get nodes
+
+# 2. Node labels
+Write-Output "`n=== NODE LABELS ==="
+kubectl get nodes --show-labels | findstr "role"
+
+# 3. Jenkins
+Write-Output "`n=== JENKINS ==="
+kubectl get all -n jenkins
+# Jenkins URL — copy the EXTERNAL-IP from the output above and open http://<EXTERNAL-IP>:8080
+
+# 4. Docker images on DockerHub
+Write-Output "`n=== DOCKERHUB ==="
+Write-Output "https://hub.docker.com/u/mohamedelshahaby"
+
+# 5. RDS
+Write-Output "`n=== RDS ==="
+terraform output rds_endpoint
+Write-Output "Use SSMS or sqlcmd to connect and verify InventoryManagementDb exists"
+
+# 6. Jenkins Pipeline
+Write-Output "`n=== JENKINS PIPELINE ==="
+Write-Output "Open http://$JENKINS_URL`:8080/job/Inventory-App%20Pipeline/ and check last build"
+Write-Output "Expected: All stages green including Deploy stage"
+
+# 7. Application (Phase 5)
+Write-Output "`n=== APPLICATION PODS ==="
+kubectl get all -n production
+
+Write-Output "`n=== FRONTEND URL ==="
+kubectl get svc -n production frontend-service
+Write-Output "Open http://<EXTERNAL-IP> in your browser to see the app"
+```
 
 ---
 
@@ -534,26 +748,27 @@ Write-Output "Expected: All stages green (Deploy stage skips until Phase 5)"
 | **Total** | **~16-28 min** |  |
 
 
-### Recreate time (total: ~40-60 min)
+### Recreate time (total: ~55-80 min)
 
 | Phase | Time | Notes |
 |---|---|---|
 | **Prerequisites** | 5 min | Check tools, AWS credentials |
 | **Phase 1 (Terraform)** | 25-35 min | Most time is EKS + RDS provisioning |
 | **Phase 2 (Jenkins)** | 5-10 min | Apply YAMLs, wait for pod |
-| **Phase 3 (Docker)** | 5-10 min | Build, tag, push |
+| **Phase 3 (Docker)** | (Optional) | Jenkins pipeline handles automatically |
 | **Phase 4 (Pipeline)** | 15-20 min | Install plugins, create credentials + pipeline job in Jenkins |
+| **Phase 5 (Application)** | 2-5 min | Apply `k8s/application/` YAMLs, verify pods |
 | **Total** | **~55-80 min** | Mostly waiting for AWS |
 
 ### Cost savings
 
 | Scenario | Monthly Cost |
 |---|---|
-| **Always on** (24/7) | ~$183/month |
-| **Destroy when idle** (~40 hours/week) | ~$43/month |
-| **Savings** | **~$140/month** |
+| **Always on** (24/7) | ~$210/month |
+| **Destroy when idle** (~40 hours/week) | ~$50/month |
+| **Savings** | **~$160/month** |
 
-> 💡 **Recommendation:** Destroy on Friday night, recreate on Monday morning. You save ~$140/month.
+> 💡 **Recommendation:** Destroy on Friday night, recreate on Monday morning. You save ~$160/month.
 
 ---
 
@@ -580,15 +795,13 @@ As we complete new phases in this project, add the destroy and recreate steps he
 | Recreate: Verify Jenkins pod is Running (2/2) | ☐ |
 | Recreate: Get Jenkins LoadBalancer URL | ☐ |
 
-### ✅ Phase 3 (Complete)
+### ✅ Phase 3 (Complete — OPTIONAL, Jenkins handles automatically)
 
 | Action | Done? |
 |---|---|
 | Destroy: `docker image prune -a` (optional) | ☐ |
 | Destroy: Delete DockerHub repos (manual on website) | ☐ |
-| Recreate: `docker build -t inventory_backend:latest ./Backend` | ☐ |
-| Recreate: `docker build -t inventory_frontend:latest ./Frontend` | ☐ |
-| Recreate: `docker push` both images to DockerHub | ☐ |
+| Recreate: *(Skip — Jenkins pipeline builds and pushes images automatically)* | — |
 
 ### ✅ Phase 4 (Complete)
 
@@ -607,16 +820,16 @@ As we complete new phases in this project, add the destroy and recreate steps he
 | Recreate: Push a commit to test webhook auto-trigger | ☐ |
 | Recreate: Run first pipeline build and verify all stages pass | ☐ |
 
-### ⬜ Phase 5 (Not completed yet)
-
-**Fill these in after Phase 5 is done (K8s App Deployments):**
+### ✅ Phase 5 (Complete)
 
 | Action | Done? |
 |---|---|
 | Destroy: `kubectl delete -f k8s/application/` | ☐ |
+| Recreate: Update RDS endpoint in `k8s/application/secrets.yaml` | ☐ |
 | Recreate: `kubectl apply -f k8s/application/` | ☐ |
-| Recreate: Verify frontend and backend pods are Running | ☐ |
-| Recreate: Get frontend LoadBalancer URL | ☐ |
+| Recreate: Verify frontend and backend pods are Running (`kubectl get pods -n production`) | ☐ |
+| Recreate: Get frontend LoadBalancer URL (`kubectl get svc -n production frontend-service`) | ☐ |
+| Recreate: Open the frontend URL in a browser and verify the app loads | ☐ |
 
 > **How to update this file:** After each phase is completed, edit this section and add the specific destroy/recreate actions for that phase. Also update the **Recreate Everything** section to include the new phase's steps.
 
@@ -658,11 +871,18 @@ kubectl get nodes
 kubectl get all -n jenkins
 kubectl get pods -n jenkins -w
 
+# Get application resources (Phase 5)
+kubectl get all -n production
+kubectl get pods -n production -w
+kubectl get svc -n production frontend-service
+
 # Apply Kubernetes manifests
 kubectl apply -f k8s/jenkins/
+kubectl apply -f k8s/application/
 
 # Delete Kubernetes manifests
 kubectl delete -f k8s/jenkins/
+kubectl delete -f k8s/application/
 
 # Run command inside Jenkins container
 kubectl exec -n jenkins <pod-name> -c jenkins -- <command>
@@ -691,4 +911,4 @@ docker image prune -a
 
 ---
 
-> **Last updated:** Phase 4 complete. Next update when Phase 5 is done.
+> **Last updated:** Phase 5 complete. Full CI/CD pipeline is operational.

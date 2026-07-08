@@ -53,11 +53,13 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 // 5. Controllers & CORS
 builder.Services.AddControllers();
 
+var corsOrigins = builder.Configuration["Cors:AllowedOrigins"] ?? "http://localhost:4200";
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:4200") // Frontend client port
+        policy.WithOrigins(corsOrigins.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: production
+  labels:
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5097
+      targetPort: 5097
+      protocol: TCP
+      name: http-api
+  type: ClusterIP
